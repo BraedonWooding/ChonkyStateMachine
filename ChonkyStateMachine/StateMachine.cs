@@ -3,12 +3,18 @@ using System.Collections.Generic;
 
 namespace ChonkyStateMachine
 {
-    public class StateMachine<State, Transition>
+    /// <summary>
+    /// A simple state machine.
+    /// </summary>
+    public sealed class StateMachine<State, Trigger>
     {
-        private readonly Dictionary<State, Dictionary<Transition, State>> _sm = new Dictionary<State, Dictionary<Transition, State>>();
+        /// <summary>
+        /// Underlying graph like structure, (adj list - like)
+        /// </summary>
+        private readonly Dictionary<State, Dictionary<Trigger, State>> _sm = new Dictionary<State, Dictionary<Trigger, State>>();
         private readonly bool _isLax;
 
-        public StateMachine(bool isLax)
+        internal StateMachine(bool isLax)
         {
             this._isLax = isLax;
         }
@@ -19,7 +25,7 @@ namespace ChonkyStateMachine
             {
                 if (!_isLax)
                 {
-                    throw new StateMachineValidationException<State, Transition>($"State {state} already exists in state machine.")
+                    throw new StateMachineValidationException<State, Trigger>($"State {state} already exists in state machine.")
                     {
                         State = state,
                         Issue = StateMachineValidationIssues.STATE_ALREADY_EXISTS
@@ -28,11 +34,45 @@ namespace ChonkyStateMachine
             }
             else
             {
-                _sm.Add(state, new Dictionary<Transition, State>());
+                _sm.Add(state, new Dictionary<Trigger, State>());
             }
         }
 
-        internal void AddTransition(Transition trigger, State start, State end)
+        /// <summary>
+        /// Get all possible triggers from a given state.
+        /// </summary>
+        public IEnumerable<Trigger> GetPossibleTriggers(State state)
+        {
+            if (!_sm.TryGetValue(state, out var startTransitions))
+            {
+                throw new StateMachineValidationException<State, Trigger>($"State {state} doesn't exist in state machine.")
+                {
+                    State = state,
+                    Issue = StateMachineValidationIssues.STATE_MISSING,
+                };
+            }
+
+            return startTransitions.Keys;
+        }
+
+        /// <summary>
+        /// Get all possible resultant states (and the corresponding trigger) from a state.
+        /// </summary>
+        public IEnumerable<KeyValuePair<Trigger, State>> GetPossibleStates(State state)
+        {
+            if (!_sm.TryGetValue(state, out var startTransitions))
+            {
+                throw new StateMachineValidationException<State, Trigger>($"State {state} doesn't exist in state machine.")
+                {
+                    State = state,
+                    Issue = StateMachineValidationIssues.STATE_MISSING,
+                };
+            }
+
+            return startTransitions;
+        }
+
+        internal void AddTransition(Trigger trigger, State start, State end)
         {
             if (_isLax)
             {
@@ -42,7 +82,7 @@ namespace ChonkyStateMachine
 
             if (!_sm.TryGetValue(start, out var startTransitions))
             {
-                throw new StateMachineValidationException<State, Transition>($"State {start} doesn't exist in state machine.")
+                throw new StateMachineValidationException<State, Trigger>($"State {start} doesn't exist in state machine.")
                 {
                     State = start,
                     Issue = StateMachineValidationIssues.STATE_MISSING,
@@ -51,7 +91,7 @@ namespace ChonkyStateMachine
 
             if (startTransitions.ContainsKey(trigger))
             {
-                throw new StateMachineValidationException<State, Transition>($"State {start} with trigger {trigger} already exists in state machine.")
+                throw new StateMachineValidationException<State, Trigger>($"State {start} with trigger {trigger} already exists in state machine.")
                 {
                     State = start,
                     Trigger = trigger,
@@ -61,7 +101,7 @@ namespace ChonkyStateMachine
 
             if (!_sm.ContainsKey(end))
             {
-                throw new StateMachineValidationException<State, Transition>($"State {end} doesn't exist in state machine.")
+                throw new StateMachineValidationException<State, Trigger>($"State {end} doesn't exist in state machine.")
                 {
                     State = end,
                     Issue = StateMachineValidationIssues.STATE_MISSING,
@@ -71,11 +111,14 @@ namespace ChonkyStateMachine
             startTransitions.Add(trigger, end);
         }
 
-        public State NextState(State from, Transition trigger)
+        /// <summary>
+        /// Get the next state in the system from a given state applying a given trigger
+        /// </summary>
+        public State NextState(State from, Trigger trigger)
         {
             if (!_sm.TryGetValue(from, out var startTransitions))
             {
-                throw new StateMachineValidationException<State, Transition>($"State {from} doesn't exist in state machine.")
+                throw new StateMachineValidationException<State, Trigger>($"State {from} doesn't exist in state machine.")
                 {
                     State = from,
                     Issue = StateMachineValidationIssues.STATE_MISSING,
@@ -84,7 +127,7 @@ namespace ChonkyStateMachine
 
             if (!startTransitions.TryGetValue(trigger, out var result))
             {
-                throw new StateMachineValidationException<State, Transition>($"State {from} with trigger {trigger} doesn't exist in state machine.")
+                throw new StateMachineValidationException<State, Trigger>($"State {from} with trigger {trigger} doesn't exist in state machine.")
                 {
                     State = from,
                     Trigger = trigger,
