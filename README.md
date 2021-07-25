@@ -1,5 +1,9 @@
 # ChonkyStateMachine
 
+![Nuget](https://img.shields.io/nuget/v/ChonkyStateMachine)
+
+![Build Workflow](https://github.com/BraedonWooding/ChonkyReviews/actions/workflows/dotnet.yml/badge.svg)
+
 > By Braedon Wooding
 
 A simple, short, and sweet 200 line C# State Machine that is *fast* and easy to understand/use.
